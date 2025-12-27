@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Medidas de Tanques</title>
+
+<style>
+:root{
+    --bg:#f4f6f8;
+    --primary:#1976D2;
+    --success:#2e7d32;
+    --error:#c62828;
+    --border:#ddd;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+    font-family:system-ui,Arial;
+    background:var(--bg);
+    padding:12px;
+}
+.container{max-width:600px;margin:auto;}
+.card{
+    background:white;
+    border-radius:12px;
+    padding:18px;
+    margin-bottom:16px;
+    box-shadow:0 2px 6px rgba(0,0,0,.1);
+}
+h1{text-align:center;color:var(--primary);margin-bottom:10px;}
+label{font-weight:600;margin-top:12px;display:block;}
+input,select{
+    width:100%;
+    padding:12px;
+    border-radius:8px;
+    border:2px solid var(--border);
+    font-size:15px;
+}
+input.activo{
+    border-color:var(--primary);
+    background:#e3f2fd;
+}
+button{
+    margin-top:12px;
+    width:100%;
+    padding:14px;
+    border:none;
+    border-radius:8px;
+    font-weight:600;
+    cursor:pointer;
+}
+.primary{background:var(--primary);color:white;}
+.secondary{background:#777;color:white;}
+.note{font-size:12px;color:#555;margin-top:4px;}
+.result{
+    margin-top:14px;
+    padding:14px;
+    background:#e3f2fd;
+    border-left:4px solid var(--primary);
+    display:none;
+    text-align:center;
+}
+.result.active{display:block;}
+.result strong{font-size:28px;color:var(--success);}
+.error{
+    display:none;
+    margin-top:10px;
+    padding:10px;
+    background:#ffebee;
+    border-left:4px solid var(--error);
+}
+.error.active{display:block;}
+.table-box{
+    max-height:300px;
+    overflow:auto;
+    border:1px solid var(--border);
+    border-radius:6px;
+}
+table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:13px;
+}
+th,td{
+    padding:8px;
+    text-align:center;
+}
+thead{
+    background:var(--primary);
+    color:white;
+}
+tbody tr:nth-child(even){
+    background:#fafafa;
+}
+.footer{
+    text-align:center;
+    font-size:12px;
+    color:#777;
+    margin-top:16px;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<h1>Medidas de Tanques</h1>
+
+
+<div class="card">
+<label>Tanque</label>
+<select id="tanque"></select>
+<div class="note" id="rango"></div>
+
+<label>Altura (cm)</label>
+<input type="number" id="altura" step="0.1" placeholder="Ej: 39">
+
+<label>Litros</label>
+<input type="number" id="litros" step="0.1" placeholder="Ej: 400">
+
+<label>Vacío (cm)</label>
+<input type="number" id="vacio" step="0.1" placeholder="Ej: 100">
+<div class="note">Usa solo un campo. El último digitado prevalece.</div>
+
+<button class="primary" onclick="calcular()">Calcular</button>
+<button class="secondary" onclick="limpiar()">Limpiar</button>
+
+<div class="result" id="resultado">
+    <strong id="valor"></strong>
+    <div id="unidad"></div>
+    <div class="note" id="tipo"></div>
+</div>
+
+<div class="error" id="error"></div>
+</div>
+
+
+<div class="card">
+<h3>Tabla del tanque seleccionado</h3>
+<div class="table-box" id="tablaDatos"></div>
+</div>
+
+<div class="card">
+<h3>Histórico (últimos 20 registros)</h3>
+<div class="table-box" id="historial"></div>
+<button class="secondary" onclick="limpiarHistorial()">Limpiar histórico</button>
+</div>
+
+<div class="footer">
+© 2025 Andres Felipe Gonzalez Espindola
+</div>
+
+</div>
+
+<script>
+const MAX_HIST=20;
+
+const datos = {
+ "250L":[[4.5,10],[9,20],[13,30],[17,40],[21,50],[25,60],[28.5,70],[32,80],[35.5,90],[39,100],[42.5,110],[46,120],[49,130],[52,140],[56,150],[59,160],[62,170],[65,180],[68,190],[71,200],[74,210],[76.5,220],[79,230],[81,240],[83,250]],
+ "500L":[[0,0],[21,100],[30.5,150],[40,200],[49,250],[58,300],[66,350],[74,400],[83.25,450],[92.5,500]],
+ "1000L":[[13.5,100],[20.3,150],[27,200],[34.5,250],[42,300],[50,350],[58,400],[65,450],[72,500],[77,550],[82,600],[87.5,650],[93,700],[99,750],[105,800],[110,850],[115,900],[121,950],[127,1000]],
+ "2000L":[[12,100],[18,150],[24,200],[31.1,250],[38.2,300],[39.9,350],[41.5,400],[45.9,450],[50.3,500],[54.5,550],[59,600],[63.5,650],[68,700],[72,750],[76.5,800],[80.2,850],[84,900],[89,950],[92,1000],[96,1050],[100,1100],[104,1150],[108,1200],[112,1250],[117,1300],[121,1350],[125,1400],[128,1450],[132,1500],[135,1550],[138,1600],[142,1650],[145,1700],[148.6,1750],[152,1800],[156,1850],[158,1900],[161,1950],[164,2000]],
+ "5000L":[[2.5,50],[5,100],[7.5,150],[10,200],[12.5,250],[14.5,300],[16.5,350],[18.5,400],[22.2,450],[24.5,500],[26.7,550],[27.5,600],[29.2,650],[30.7,700],[32.3,750],[34,800],[36.5,850],[39,900],[41.5,950],[44,1000],[46,1050],[48,1100],[50,1150],[52,1200],[54.2,1250],[56.2,1300],[58.4,1350],[60.5,1400],[62.4,1450],[64.5,1500],[66.5,1550],[68,1600],[70,1650],[72,1700],[74,1750],[76,1800],[77.1,1850],[79.1,1900],[81.7,1950],[83.7,2000],[85.4,2050],[87.1,2100],[88.8,2150],[90.5,2200],[92.6,2250],[94.7,2300],[96.8,2350],[99,2400],[100.7,2450],[102.5,2500],[104.2,2550],[106,2600],[108,2650],[110,2700],[112,2750],[114,2800],[115.7,2850],[117.2,2900],[119.2,2950],[121,3000],[122.7,3050],[124.5,3100],[126.2,3150],[128,3200],[129.7,3250],[131.2,3300],[133.2,3350],[135,3400],[136.7,3450],[138.4,3500],[140.2,3550],[142,3600],[143.7,3650],[145.5,3700],[147.2,3750],[149,3800],[150.7,3850],[152.2,3900],[154.2,3950],[156,4000],[158,4050],[160,4100],[162,4150],[164,4200],[166.7,4250],[168.4,4300],[170.2,4350],[171,4400],[173,4450],[175,4500],[177,4550],[179,4600],[181,4650],[183,4700],[185,4750],[187,4800],[188.8,4850],[190.7,4900],[192.6,4950],[194.5,5000]]
+};
+
+const tanqueSel = document.getElementById("tanque");
+Object.keys(datos).forEach(t => tanqueSel.innerHTML += `<option>${t}</option>`);
+
+const inputAltura = altura;
+const inputLitros = litros;
+const inputVacio  = vacio;
+
+function activarInput(activo){
+ [inputAltura,inputLitros,inputVacio].forEach(i=>{
+  if(i!==activo) i.value="";
+  i.classList.remove("activo");
+ });
+ activo.classList.add("activo");
+}
+
+[inputAltura,inputLitros,inputVacio].forEach(i=>{
+ i.addEventListener("input",()=>{ if(i.value!=="") activarInput(i); });
+});
+
+function actualizarRango(){
+ const t=datos[tanqueSel.value];
+ rango.textContent=`Altura válida: 0 – ${t[t.length-1][0]} cm`;
+ dibujarTabla();
+}
+tanqueSel.onchange=actualizarRango;
+actualizarRango();
+
+function interpAltura(t,h){
+ for(let i=0;i<t.length-1;i++)
+  if(h>=t[i][0] && h<=t[i+1][0])
+   return t[i][1]+(h-t[i][0])*(t[i+1][1]-t[i][1])/(t[i+1][0]-t[i][0]);
+ return null;
+}
+function interpLitros(t,l){
+ for(let i=0;i<t.length-1;i++)
+  if(l>=t[i][1] && l<=t[i+1][1])
+   return t[i][0]+(l-t[i][1])*(t[i+1][0]-t[i][0])/(t[i+1][1]-t[i][1]);
+ return null;
+}
+
+function calcular(){
+ error.classList.remove("active");
+ resultado.classList.remove("active");
+
+ const t=datos[tanqueSel.value];
+ let res,unit,desc;
+
+ if(inputAltura.value){
+  res=interpAltura(t,parseFloat(inputAltura.value));
+  unit="litros"; desc="Altura → Litros";
+ }
+ else if(inputLitros.value){
+  res=interpLitros(t,parseFloat(inputLitros.value));
+  unit="cm"; desc="Litros → Altura";
+ }
+ else if(inputVacio.value){
+  const hMax=t[t.length-1][0];
+  res=interpAltura(t,hMax-parseFloat(inputVacio.value));
+  unit="litros llenos"; desc="Vacío → Litros";
+ }
+ else{
+  error.textContent="Ingresa un valor";
+  error.classList.add("active"); return;
+ }
+
+ if(res===null){
+  error.textContent="Valor fuera de rango";
+  error.classList.add("active"); return;
+ }
+
+ valor.textContent=res.toFixed(2);
+ unidad.textContent=unit;
+ tipo.textContent=desc;
+ resultado.classList.add("active");
+
+ guardarHistorial(desc,res.toFixed(2)+" "+unit);
+ mostrarHistorial();
+}
+
+function dibujarTabla(){
+ const t=datos[tanqueSel.value];
+ let h="<table><thead><tr><th>Altura (cm)</th><th>Litros</th></tr></thead><tbody>";
+ t.forEach(r=>h+=`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`);
+ h+="</tbody></table>";
+ tablaDatos.innerHTML=h;
+}
+
+function guardarHistorial(tipo,res){
+ let h=JSON.parse(localStorage.getItem("historial"))||[];
+ h.unshift({fecha:new Date().toLocaleString(),tanque:tanqueSel.value,tipo,res});
+ localStorage.setItem("historial",JSON.stringify(h.slice(0,MAX_HIST)));
+}
+
+function mostrarHistorial(){
+ let h=JSON.parse(localStorage.getItem("historial"))||[];
+ if(!h.length){historial.innerHTML="<p class='note'>Sin registros</p>";return;}
+ let html="<table><thead><tr><th>Fecha</th><th>Tanque</th><th>Tipo</th><th>Resultado</th></tr></thead><tbody>";
+ h.forEach(r=>html+=`<tr><td>${r.fecha}</td><td>${r.tanque}</td><td>${r.tipo}</td><td>${r.res}</td></tr>`);
+ html+="</tbody></table>";
+ historial.innerHTML=html;
+}
+mostrarHistorial();
+
+function limpiar(){
+ [inputAltura,inputLitros,inputVacio].forEach(i=>{
+  i.value=""; i.classList.remove("activo");
+ });
+ resultado.classList.remove("active");
+ error.classList.remove("active");
+}
+
+function limpiarHistorial(){
+ localStorage.removeItem("historial");
+ mostrarHistorial();
+}
+</script>
+</body>
+</html>
