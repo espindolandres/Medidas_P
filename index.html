@@ -79,8 +79,7 @@
       font-family: var(--font);
       font-size: 16px; /* evita zoom iOS */
     }
-
-    /* ✅ FIX: select clickeable en móviles */
+  
     select, input{
       width:100%;
       padding:12px;
@@ -203,8 +202,7 @@
       <div>
         <h1>Medidas de Tanques</h1>
         <p class="subtitle">
-          Calcula por <strong>interpolación lineal</strong> usando tu tabla de calibración.
-          Si activas extrapolación, se permite un margen de <strong>±2 cm</strong> (resultado estimado).
+          Calcula por <strong>interpolación lineal</strong> usando la tabla de calibración.
         </p>
       </div>
     </header>
@@ -303,7 +301,7 @@
           <div class="summary-row">
             <div>
               <h2>2) Tabla del tanque seleccionado</h2>
-              <p class="muted">Puedes plegarla para ahorrar espacio.</p>
+              <p class="muted"> Se puede plegarla para ahorrar espacio.</p>
             </div>
             <div class="chev" aria-hidden="true"></div>
           </div>
@@ -317,7 +315,7 @@
         <summary>
           <div class="summary-row">
             <div>
-              <h2>3) Histórico (últimos 20)</h2>
+              <h2>3) Histórico </h2>
               <p class="muted">Se guarda localmente en el dispositivo.</p>
             </div>
             <div class="chev" aria-hidden="true"></div>
@@ -658,7 +656,7 @@
         el.resultado.classList.add("active");
         el.resTitulo.textContent = `Resultado • ${tank.key}`;
 
-        const extra = result.extrapolated ? ` ⚠️ Estimado por extrapolación (±${EXTRAP_TOL_CM} cm).` : "";
+        const extra = result.extrapolated ? `  Estimado por extrapolación (±${EXTRAP_TOL_CM} cm).` : "";
         el.resSubtitulo.textContent =
           `Modo: ${modeText(mode)} • Entrada: ${nf2.format(inputValue)} • Interpolación lineal.${extra} ` +
           (isSaved ? "Guardado en historial." : "Vista previa.");
@@ -668,7 +666,7 @@
         el.outVacio.textContent  = `${nf2.format(result.empty)} cm`;
         el.outPct.textContent    = `${nf2.format(result.pct)}%`;
 
-        toast(isSaved ? "✅ Cálculo guardado." : "👁️ Vista previa actualizada.");
+        toast(isSaved ? "✅ Cálculo guardado." : "Vista previa actualizada.");
       }
 
       function renderTable(){
@@ -763,7 +761,7 @@
         }
         const date = new Date().toISOString().slice(0,10);
         downloadFile(`historial_tanques_${date}.csv`, "text/csv;charset=utf-8", lines.join("\n"));
-        toast("⬇️ Historial CSV descargado.");
+        toast("Historial CSV descargado.");
       }
 
       function loadState(){
@@ -832,7 +830,7 @@
         }
 
         if (result.extrapolated){
-          showWarning("⚠️ Resultado estimado por extrapolación (±2 cm).");
+          showWarning("Resultado estimado por extrapolación (±2 cm).");
         } else {
           clearWarning();
         }
@@ -862,7 +860,7 @@
       function init(){
         updateYear();
 
-        // ✅ si algo falla, lo mostramos
+        // si algo falla, lo mostramos
         window.addEventListener("error", (e) => {
           showError("Error de la app: " + (e?.message || "revisa el código/copia completa del archivo."));
         });
@@ -940,3 +938,4 @@
   </script>
 </body>
 </html>
+
