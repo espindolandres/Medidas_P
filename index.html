@@ -2,16 +2,21 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <meta name="description" content="Calculadora profesional de niveles de tanques con interpolación/extrapolación controlada, tabla y histórico." />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#1976D2" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="description" content="Calculadora móvil de niveles de tanques con interpolación/extrapolación controlada, tabla y histórico." />
   <title>Medidas de Tanques</title>
 
   <style>
     :root{
       --primary:#1976D2;
       --primary-hover:#1565c0;
+
       --bg1:#f4f7fb;
       --bg2:#ffffff;
+
       --text:#0f172a;
       --muted:#64748b;
       --border:#d7dde6;
@@ -39,19 +44,26 @@
         radial-gradient(1200px 700px at 10% 10%, #eef6fb 0%, transparent 60%),
         radial-gradient(1000px 600px at 90% 0%, #f2f4ff 0%, transparent 55%),
         linear-gradient(135deg, #f7fbff 0%, #e8f0fb 100%);
-      padding: var(--s24);
+      padding: clamp(12px, 3.2vw, 24px);
+      -webkit-text-size-adjust: 100%;
     }
 
-    .container{max-width: 980px; margin: 0 auto;}
+    .container{
+      max-width: 980px;
+      margin: 0 auto;
+      /* espacio para la barra inferior en móvil */
+      padding-bottom: calc(92px + env(safe-area-inset-bottom));
+    }
+
     header{
       display:flex; align-items:flex-start; justify-content:space-between;
       gap: var(--s16);
-      margin-bottom: var(--s20);
+      margin-bottom: var(--s16);
     }
 
     h1{
       margin:0;
-      font-size: clamp(1.4rem, 2.2vw, 2.0rem);
+      font-size: clamp(1.25rem, 3.6vw, 2.0rem);
       letter-spacing:-0.02em;
       line-height:1.15;
       color: var(--primary);
@@ -61,6 +73,7 @@
       color: var(--muted);
       font-size: 0.98rem;
       line-height: 1.4;
+      max-width: 820px;
     }
     .pill{
       display:inline-flex; align-items:center; gap: var(--s8);
@@ -73,25 +86,24 @@
       white-space: nowrap;
     }
 
-    main{display:grid; gap: var(--s20);}
+    main{display:grid; gap: var(--s16);}
 
     .card{
       background: var(--bg2);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       box-shadow: var(--shadow);
-      padding: var(--s24);
+      padding: var(--s20);
     }
 
     .card-head{
       display:flex; align-items:flex-start; justify-content:space-between;
-      gap: var(--s16);
-      margin-bottom: var(--s16);
+      gap: var(--s12);
+      margin-bottom: var(--s12);
     }
-
     .card h2{
       margin:0;
-      font-size:1.15rem;
+      font-size:1.08rem;
       letter-spacing:-0.01em;
     }
     .muted{margin: 6px 0 0; color: var(--muted); font-size: 0.95rem; line-height:1.4}
@@ -99,22 +111,24 @@
     .grid{
       display:grid;
       grid-template-columns: repeat(12, 1fr);
-      gap: var(--s16);
-      margin-top: var(--s16);
+      gap: var(--s12);
+      margin-top: var(--s12);
     }
     .col-12{grid-column: span 12;}
     .col-6{grid-column: span 6;}
-    .col-4{grid-column: span 4;}
 
     .field{display:flex; flex-direction:column; gap: var(--s8);}
-    label{font-weight: 800; font-size: 0.93rem;}
+    label{font-weight: 900; font-size: 0.93rem;}
     .help{margin:0; color: var(--muted); font-size: 0.88rem; line-height: 1.35;}
 
-    input, select, button{font-family: var(--font); font-size: 0.95rem;}
+    input, select, button{
+      font-family: var(--font);
+      font-size: 16px; /* MUY importante en iOS para evitar zoom */
+    }
     input, select{
       width:100%;
       padding: 12px 12px;
-      border-radius: 10px;
+      border-radius: 12px;
       border: 1px solid var(--border);
       background: #fbfcfe;
       transition: border-color .15s, box-shadow .15s, background-color .15s;
@@ -144,18 +158,16 @@
       background: #fff7f7;
     }
 
-    .row{
-      display:flex; gap: var(--s12); align-items:center; flex-wrap:wrap;
-    }
+    .row{display:flex; gap: var(--s12); align-items:center; flex-wrap:wrap;}
 
     .toggle{
       display:flex; align-items:center; gap: var(--s8);
       padding: 10px 12px;
-      border-radius: 10px;
+      border-radius: 12px;
       border: 1px solid var(--border);
       background: #f6f8fc;
       color: var(--text);
-      font-weight: 800;
+      font-weight: 900;
       cursor:pointer;
       user-select:none;
     }
@@ -164,12 +176,13 @@
     .btns{display:flex; flex-wrap:wrap; gap: var(--s12); align-items:center;}
     button{
       border:none;
-      border-radius: 10px;
-      padding: 11px 14px;
+      border-radius: 12px;
+      padding: 12px 14px;
       cursor:pointer;
-      font-weight: 900;
+      font-weight: 950;
       transition: transform .08s, background-color .15s, opacity .15s;
       user-select:none;
+      touch-action: manipulation;
     }
     button:active{transform: translateY(1px);}
     button:disabled{opacity:0.55; cursor:not-allowed; transform:none;}
@@ -181,7 +194,7 @@
     .btn-ghost{background: transparent; color: var(--text); border: 1px solid var(--border);}
     .btn-ghost:hover{background:#f6f8fc;}
 
-    .alerts{margin-top: var(--s16); display:grid; gap: var(--s12);}
+    .alerts{margin-top: var(--s12); display:grid; gap: var(--s12);}
     .alert{
       border-radius: 12px;
       padding: 12px 14px;
@@ -190,23 +203,14 @@
       font-size: 0.92rem;
       line-height: 1.35;
     }
-    .alert strong{font-weight: 900;}
-    .alert.error{
-      border-color: rgba(198, 40, 40, 0.35);
-      background: rgba(198, 40, 40, 0.07);
-    }
-    .alert.warning{
-      border-color: rgba(168, 75, 47, 0.35);
-      background: rgba(168, 75, 47, 0.08);
-    }
-    .alert.info{
-      border-color: rgba(25,118,210, 0.30);
-      background: rgba(25,118,210, 0.07);
-    }
+    .alert strong{font-weight: 950;}
+    .alert.error{border-color: rgba(198, 40, 40, 0.35); background: rgba(198, 40, 40, 0.07);}
+    .alert.warning{border-color: rgba(168, 75, 47, 0.35); background: rgba(168, 75, 47, 0.08);}
+    .alert.info{border-color: rgba(25,118,210, 0.30); background: rgba(25,118,210, 0.07);}
 
     .result{
-      margin-top: var(--s16);
-      padding-top: var(--s16);
+      margin-top: var(--s12);
+      padding-top: var(--s12);
       border-top: 1px solid var(--border);
       display:none;
     }
@@ -227,18 +231,19 @@
       min-height: 74px;
     }
     .metric .k{color: var(--muted); font-size: 0.85rem; margin-bottom: var(--s4);}
-    .metric .v{font-weight: 900; font-size: 1.05rem; letter-spacing: -0.01em;}
+    .metric .v{font-weight: 950; font-size: 1.05rem; letter-spacing: -0.01em;}
     .metric .sub{margin-top: var(--s4); font-size: 0.85rem; color: var(--muted); font-family: var(--mono);}
 
+    /* ====== Desktop table wrappers ====== */
     .table-wrap{
       overflow:auto;
       margin-top: var(--s12);
       border: 1px solid var(--border);
       border-radius: 12px;
       background: #fff;
-      max-height: 360px;
+      max-height: 420px;
     }
-    table{width:100%; border-collapse:collapse; min-width: 760px;}
+    table{width:100%; border-collapse:collapse; min-width: 680px;}
     thead th{
       text-align:center;
       font-size: 0.85rem;
@@ -249,12 +254,14 @@
       position: sticky;
       top: 0;
       z-index: 1;
+      white-space: nowrap;
     }
     tbody td{
       border-bottom: 1px solid #eef2f7;
       padding: 10px 10px;
       text-align:center;
       font-size: 0.92rem;
+      white-space: nowrap;
     }
     tbody tr:nth-child(even){background:#fafafa;}
     tbody tr.highlight{
@@ -263,15 +270,100 @@
       outline-offset: -2px;
     }
 
-    .toast{
+    /* ====== Mobile card lists (tabla/historial) ====== */
+    .list-cards{
+      display:grid;
+      gap: var(--s12);
       margin-top: var(--s12);
-      min-height: 22px;
+    }
+    .row-card{
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px 12px;
+      background: #fff;
+    }
+    .row-card.highlight{
+      border-color: rgba(255, 193, 7, 0.55);
+      box-shadow: 0 0 0 4px rgba(255, 193, 7, 0.12);
+      background: rgba(255, 193, 7, 0.08);
+    }
+    .row-main{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      align-items:center;
+    }
+    .kv .k{
       color: var(--muted);
-      font-size: 0.92rem;
+      font-size: 0.82rem;
+      margin-bottom: 2px;
+    }
+    .kv .v{
+      font-weight: 950;
+      font-size: 1.0rem;
+    }
+    .row-sub{
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 0.9rem;
+      display:flex;
+      justify-content:space-between;
+      gap: 10px;
+      flex-wrap:wrap;
+    }
+
+    /* ===== Details accordion (tabla/historial) ===== */
+    details.card{
+      padding: 0;
+      overflow: hidden;
+    }
+    details.card > summary{
+      list-style:none;
+      cursor:pointer;
+      padding: var(--s20);
+      user-select:none;
+    }
+    details.card > summary::-webkit-details-marker{display:none;}
+    .summary-row{
+      display:flex; align-items:flex-start; justify-content:space-between; gap: var(--s12);
+    }
+    .chev{
+      width: 14px; height: 14px;
+      border-right: 2px solid var(--muted);
+      border-bottom: 2px solid var(--muted);
+      transform: rotate(45deg);
+      margin-top: 6px;
+      transition: transform .15s;
+      flex: 0 0 auto;
+    }
+    details[open] .chev{ transform: rotate(225deg); }
+
+    .details-body{
+      padding: 0 var(--s20) var(--s20);
+      border-top: 1px solid var(--border);
+    }
+
+    /* ===== Bottom action bar (mobile) ===== */
+    .bottom-bar{
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(10px);
+      border-top: 1px solid var(--border);
+      display:flex;
+      gap: 12px;
+      z-index: 99;
+    }
+    .bottom-bar button{
+      flex: 1;
+      padding: 14px 14px;
+      border-radius: 14px;
+      font-size: 16px;
     }
 
     footer{
-      margin-top: var(--s24);
+      margin-top: var(--s16);
       text-align:center;
       color: var(--muted);
       font-size: 0.9rem;
@@ -280,44 +372,21 @@
     }
     footer strong{color: var(--text);}
 
+    /* ===== Responsive layout ===== */
     @media (max-width: 920px){
       header{flex-direction:column; align-items:flex-start;}
-      .col-6,.col-4{grid-column: span 12;}
+      .col-6{grid-column: span 12;}
       .metric{grid-column: span 6;}
-      table{min-width: 680px;}
+      table{min-width: 640px;}
     }
-    @media (max-width: 520px){
-      .metric{grid-column: span 12;}
+    @media (min-width: 900px){
+      /* En desktop no necesitas la barra inferior */
+      .container{ padding-bottom: 0; }
+      .bottom-bar{ display:none; }
     }
-
     @media (prefers-reduced-motion: reduce){
       *{transition:none !important;}
       button:active{transform:none;}
-    }
-
-    @media (prefers-color-scheme: dark){
-      :root{
-        --bg1:#0b1220;
-        --bg2:#0f172a;
-        --text:#e5e7eb;
-        --muted:#9aa4b2;
-        --border:#263247;
-        --shadow: 0 12px 35px rgba(0,0,0,0.55);
-      }
-      body{
-        background:
-          radial-gradient(1200px 700px at 10% 10%, rgba(25,118,210,0.18) 0%, transparent 55%),
-          radial-gradient(1000px 600px at 90% 0%, rgba(99,102,241,0.18) 0%, transparent 55%),
-          linear-gradient(135deg, #0b1220 0%, #0b1020 100%);
-      }
-      input,select{background:#0b1326; color: var(--text);}
-      .btn-secondary{background:#0b1326;}
-      .btn-secondary:hover{background:#0e1933;}
-      .btn-ghost:hover{background:#0e1933;}
-      .toggle{background:#0b1326;}
-      .table-wrap{background:#0f172a;}
-      tbody tr:nth-child(even){background: rgba(255,255,255,0.03);}
-      .metric{background: linear-gradient(135deg, rgba(25,118,210,0.12) 0%, rgba(25,118,210,0.06) 100%); border-color: rgba(25,118,210,0.18);}
     }
   </style>
 </head>
@@ -332,7 +401,7 @@
           Si activas extrapolación, se permite un margen de <strong>±2 cm</strong> (resultado estimado).
         </p>
       </div>
-      <div class="pill">✅ Tabla • Resaltado • Historial • Extrap ±2 cm</div>
+      <div class="pill">📱 Móvil-first • Extrap ±2 cm • Historial</div>
     </header>
 
     <main>
@@ -341,7 +410,7 @@
         <div class="card-head">
           <div>
             <h2 id="hEntrada">1) Selección y cálculo</h2>
-            <p class="muted">Elige el tanque y el modo. Ingresa un valor y calcula.</p>
+            <p class="muted">Elige el tanque, el modo y escribe un valor.</p>
           </div>
           <div class="btns">
             <button class="btn-ghost" id="btnResetState" type="button">Restablecer</button>
@@ -367,7 +436,17 @@
 
           <div class="field col-12">
             <label id="valorLabel" for="valor">Valor</label>
-            <input id="valor" type="text" inputmode="decimal" placeholder="Ej: 39" />
+            <input
+              id="valor"
+              type="text"
+              inputmode="decimal"
+              enterkeyhint="done"
+              autocomplete="off"
+              autocapitalize="off"
+              autocorrect="off"
+              spellcheck="false"
+              placeholder="Ej: 39"
+            />
             <p class="help" id="rango">—</p>
 
             <div class="row" style="margin-top: var(--s12);">
@@ -384,6 +463,7 @@
           </div>
         </div>
 
+        <!-- En móvil la acción principal está abajo, pero dejamos botones aquí también -->
         <div class="btns" style="margin-top: var(--s16);">
           <button class="btn-primary" id="btnCalcular" type="button">Calcular y guardar</button>
           <button class="btn-secondary" id="btnLimpiar" type="button">Limpiar</button>
@@ -426,64 +506,79 @@
             </div>
           </div>
 
-          <div class="toast" id="toast"></div>
+          <div class="help" id="toast" style="margin-top: var(--s12); color: var(--muted);"></div>
         </div>
       </section>
 
-      <!-- ===================== TABLA ===================== -->
-      <section class="card" aria-labelledby="hTabla">
-        <div class="card-head">
-          <div>
-            <h2 id="hTabla">2) Tabla del tanque seleccionado</h2>
-            <p class="muted">Puedes filtrar por altura o litros. La fila más cercana al resultado se resalta.</p>
+      <!-- ===================== TABLA (COLAPSABLE) ===================== -->
+      <details class="card" id="detailsTable" open>
+        <summary>
+          <div class="summary-row">
+            <div>
+              <h2>2) Tabla del tanque seleccionado</h2>
+              <p class="muted">En móvil se muestra en tarjetas (más cómodo).</p>
+            </div>
+            <div class="chev" aria-hidden="true"></div>
           </div>
-          <div class="btns">
-            <button class="btn-secondary" id="btnTablaCsv" type="button">Exportar tabla CSV</button>
+        </summary>
+
+        <div class="details-body">
+          <div class="row">
+            <div class="field" style="min-width:220px; flex:1;">
+              <label for="filtroCampo">Filtrar por</label>
+              <select id="filtroCampo">
+                <option value="altura">Altura (cm)</option>
+                <option value="litros">Litros (L)</option>
+              </select>
+            </div>
+            <div class="field" style="min-width:260px; flex:2;">
+              <label for="filtroValor">Valor del filtro</label>
+              <input id="filtroValor" type="text" inputmode="decimal" placeholder="Ej: 39 o 400" />
+              <p class="help">Deja vacío para ver toda la tabla.</p>
+            </div>
+            <div class="btns">
+              <button class="btn-ghost" id="btnFiltroLimpiar" type="button">Limpiar filtro</button>
+              <button class="btn-secondary" id="btnTablaCsv" type="button">Exportar tabla CSV</button>
+            </div>
           </div>
+
+          <div id="tablaDatos" style="margin-top: var(--s12);" role="region" aria-label="Tabla calibración"></div>
         </div>
+      </details>
 
-        <div class="row">
-          <div class="field" style="min-width:220px; flex:1;">
-            <label for="filtroCampo">Filtrar por</label>
-            <select id="filtroCampo">
-              <option value="altura">Altura (cm)</option>
-              <option value="litros">Litros (L)</option>
-            </select>
+      <!-- ===================== HISTORIAL (COLAPSABLE) ===================== -->
+      <details class="card" id="detailsHistory" open>
+        <summary>
+          <div class="summary-row">
+            <div>
+              <h2>3) Histórico (últimos 20)</h2>
+              <p class="muted">En móvil se ve como tarjetas. Copiar / CSV disponible.</p>
+            </div>
+            <div class="chev" aria-hidden="true"></div>
           </div>
-          <div class="field" style="min-width:260px; flex:2;">
-            <label for="filtroValor">Valor del filtro</label>
-            <input id="filtroValor" type="text" inputmode="decimal" placeholder="Ej: 39 o 400" />
-            <p class="help">Deja vacío para ver toda la tabla.</p>
-          </div>
-          <div class="btns">
-            <button class="btn-ghost" id="btnFiltroLimpiar" type="button">Limpiar filtro</button>
-          </div>
-        </div>
+        </summary>
 
-        <div class="table-wrap" id="tablaDatos" role="region" aria-label="Tabla de calibración del tanque"></div>
-      </section>
-
-      <!-- ===================== HISTORIAL ===================== -->
-      <section class="card" aria-labelledby="hHist">
-        <div class="card-head">
-          <div>
-            <h2 id="hHist">3) Histórico (últimos 20 registros)</h2>
-            <p class="muted">Se guarda cuando presionas <strong>Calcular y guardar</strong>. Puedes copiar o exportar.</p>
-          </div>
-          <div class="btns">
+        <div class="details-body">
+          <div class="btns" style="margin-top: var(--s12);">
             <button class="btn-secondary" id="btnHistCopy" type="button">📋 Copiar</button>
             <button class="btn-secondary" id="btnHistCsv" type="button">⬇️ CSV</button>
             <button class="btn-ghost" id="btnHistClear" type="button">Limpiar</button>
           </div>
-        </div>
 
-        <div class="table-wrap" id="historial" role="region" aria-label="Histórico de cálculos"></div>
-      </section>
+          <div id="historial" style="margin-top: var(--s12);" role="region" aria-label="Histórico"></div>
+        </div>
+      </details>
     </main>
 
     <footer>
       © <span id="anio"></span> – Desarrollado por <strong>Andres Felipe Gonzalez Espindola</strong>
     </footer>
+  </div>
+
+  <!-- Barra inferior fija para móvil -->
+  <div class="bottom-bar" aria-label="Acciones rápidas">
+    <button class="btn-primary" id="btnCalcularBottom" type="button">Calcular</button>
+    <button class="btn-secondary" id="btnLimpiarBottom" type="button">Limpiar</button>
   </div>
 
   <script>
@@ -493,11 +588,11 @@
       const MAX_HIST = 20;
       const LS_STATE = "tankcalc_state_v3";
       const LS_HIST  = "tankcalc_history_v3";
+      const EXTRAP_TOL_CM = 2;
 
-      // Extrapolación controlada
-      const EXTRAP_TOL_CM = 2; // ±2 cm
+      const mqMobile = window.matchMedia("(max-width: 720px)");
 
-      // ===== Datos de calibración (los tuyos) =====
+      // ===== Datos =====
       const DATA = {
         "250L":[[4.5,10],[9,20],[13,30],[17,40],[21,50],[25,60],[28.5,70],[32,80],[35.5,90],[39,100],[42.5,110],[46,120],[49,130],[52,140],[56,150],[59,160],[62,170],[65,180],[68,190],[71,200],[74,210],[76.5,220],[79,230],[81,240],[83,250]],
         "500L":[[0,0],[21,100],[30.5,150],[40,200],[49,250],[58,300],[66,350],[74,400],[83.25,450],[92.5,500]],
@@ -520,6 +615,8 @@
 
         btnCalcular: document.getElementById("btnCalcular"),
         btnLimpiar: document.getElementById("btnLimpiar"),
+        btnCalcularBottom: document.getElementById("btnCalcularBottom"),
+        btnLimpiarBottom: document.getElementById("btnLimpiarBottom"),
         btnResetState: document.getElementById("btnResetState"),
 
         alertError: document.getElementById("alertError"),
@@ -549,10 +646,12 @@
         btnHistCsv: document.getElementById("btnHistCsv"),
         btnHistCopy: document.getElementById("btnHistCopy"),
 
-        anio: document.getElementById("anio")
+        detailsTable: document.getElementById("detailsTable"),
+        detailsHistory: document.getElementById("detailsHistory"),
+
+        anio: document.getElementById("anio"),
       };
 
-      // ===== Helpers =====
       const nf2 = new Intl.NumberFormat("es-CO", { maximumFractionDigits: 2 });
 
       function parseNumber(value){
@@ -619,7 +718,6 @@
       }
 
       function getLitersTolFrom2cm(tank){
-        // Convertimos ±2 cm a tolerancia en litros usando la pendiente (L/cm) de los extremos.
         const pts = tank.points;
         if (pts.length < 2) return { low: 0, high: 0 };
 
@@ -656,7 +754,6 @@
         const tolLow = typeof tol === "number" ? tol : (tol?.low ?? 0);
         const tolHigh = typeof tol === "number" ? tol : (tol?.high ?? 0);
 
-        // Extrapolar por debajo
         if (x < minX){
           if (!allowExtrap) return null;
           if (x < (minX - tolLow)) return null;
@@ -669,7 +766,6 @@
           return { value: y, extrapolated: true };
         }
 
-        // Extrapolar por encima
         if (x > maxX){
           if (!allowExtrap) return null;
           if (x > (maxX + tolHigh)) return null;
@@ -682,7 +778,6 @@
           return { value: y, extrapolated: true };
         }
 
-        // Interpolar dentro de rango
         if (x === minX) return { value: points[0][yKey], extrapolated: false };
         if (x === maxX) return { value: points[n - 1][yKey], extrapolated: false };
 
@@ -703,11 +798,9 @@
         return "Vacío → Litros";
       }
 
-      // ===== Validación con tolerancia =====
       function validateInput(tank, mode, value, allowExtrap){
         if (!Number.isFinite(value)) return "Ingresa un número válido (acepta coma o punto).";
 
-        // Altura
         if (mode === "altura"){
           if (value < 0) return "La altura no puede ser negativa.";
           const r = getHeightRange(tank, allowExtrap);
@@ -720,7 +813,6 @@
           return null;
         }
 
-        // Litros
         if (mode === "litros"){
           if (value < 0) return "Los litros no pueden ser negativos.";
           const r = getLitersRange(tank, allowExtrap);
@@ -733,15 +825,10 @@
           return null;
         }
 
-        // Vacío
         if (mode === "vacio"){
-          // Permitimos vacío negativo SOLO si allowExtrap y hasta -2 cm (nivel por encima)
           const minEmpty = allowExtrap ? -EXTRAP_TOL_CM : 0;
-
-          // Para no salir del rango de altura calibrada, el máximo vacío normal es (maxH - minH).
-          // Con extrapolación permitimos altura hasta (minH - 2) (limitada por 0 en altura), pero en vacío eso equivale a +2 cm.
           const heightRange = getHeightRange(tank, allowExtrap);
-          const maxEmpty = tank.maxH - heightRange.min; // si min baja, vacío puede subir
+          const maxEmpty = tank.maxH - heightRange.min;
 
           if (value < minEmpty || value > maxEmpty){
             if (!allowExtrap){
@@ -749,14 +836,12 @@
             }
             return `Vacío fuera del rango permitido. Calibrado: 0 – ${nf2.format(tank.maxH - tank.minH)} cm • Con extrap.: ${nf2.format(minEmpty)} – ${nf2.format(maxEmpty)} cm.`;
           }
-
           return null;
         }
 
         return "Modo inválido.";
       }
 
-      // ===== Cálculo =====
       function computeResult(tank, mode, value, allowExtrap){
         let h = null, l = null;
         let extrapolated = false;
@@ -785,7 +870,6 @@
           return null;
         }
 
-        // Seguridad: litros no pueden ser negativos (puede pasar si extrapolas hacia abajo en tanques con minH=0)
         if (Number.isFinite(l) && l < 0){
           l = 0;
           extrapolated = true;
@@ -797,7 +881,6 @@
         return { h, l, empty, pct, extrapolated };
       }
 
-      // ===== UI =====
       let currentResult = null;
 
       function updateTankMeta(){
@@ -821,8 +904,8 @@
 
           const r = getHeightRange(tank, allowExtrap);
           el.rango.textContent = allowExtrap
-            ? `Rango calibrado: ${nf2.format(tank.minH)}–${nf2.format(tank.maxH)} cm • Extrap: ${nf2.format(r.min)}–${nf2.format(r.max)} cm (estimado).`
-            : `Rango calibrado: ${nf2.format(tank.minH)}–${nf2.format(tank.maxH)} cm.`;
+            ? `Calibrado: ${nf2.format(tank.minH)}–${nf2.format(tank.maxH)} cm • Extrap: ${nf2.format(r.min)}–${nf2.format(r.max)} cm.`
+            : `Calibrado: ${nf2.format(tank.minH)}–${nf2.format(tank.maxH)} cm.`;
 
         } else if (mode === "litros"){
           el.valorLabel.textContent = "Litros (L)";
@@ -831,8 +914,8 @@
 
           const r = getLitersRange(tank, allowExtrap);
           el.rango.textContent = allowExtrap
-            ? `Rango calibrado: ${nf2.format(tank.minL)}–${nf2.format(tank.maxL)} L • Extrap: ${nf2.format(r.min)}–${nf2.format(r.max)} L (equivale a ±${EXTRAP_TOL_CM} cm, estimado).`
-            : `Rango calibrado: ${nf2.format(tank.minL)}–${nf2.format(tank.maxL)} L.`;
+            ? `Calibrado: ${nf2.format(tank.minL)}–${nf2.format(tank.maxL)} L • Extrap: ${nf2.format(r.min)}–${nf2.format(r.max)} L.`
+            : `Calibrado: ${nf2.format(tank.minL)}–${nf2.format(tank.maxL)} L.`;
 
         } else {
           el.valorLabel.textContent = "Vacío (cm)";
@@ -844,8 +927,8 @@
           const maxEmpty = tank.maxH - heightRange.min;
 
           el.rango.textContent = allowExtrap
-            ? `Rango calibrado: 0–${nf2.format(tank.maxH - tank.minH)} cm • Extrap: ${nf2.format(minEmpty)}–${nf2.format(maxEmpty)} cm (estimado).`
-            : `Rango calibrado: 0–${nf2.format(tank.maxH - tank.minH)} cm.`;
+            ? `Calibrado: 0–${nf2.format(tank.maxH - tank.minH)} cm • Extrap: ${nf2.format(minEmpty)}–${nf2.format(maxEmpty)} cm.`
+            : `Calibrado: 0–${nf2.format(tank.maxH - tank.minH)} cm.`;
         }
       }
 
@@ -866,7 +949,6 @@
 
       function showResult(result, mode, inputValue, isSaved){
         const tank = getTank(el.tanque.value);
-
         el.resultado.classList.add("active");
         el.resTitulo.textContent = `Resultado • ${tank.key}`;
 
@@ -888,10 +970,9 @@
         toast(isSaved ? "✅ Cálculo guardado." : "👁️ Vista previa actualizada.");
       }
 
-      // ===== Tabla =====
+      // ===== Tabla (Desktop / Mobile cards) =====
       function renderTable(result){
         const tank = getTank(el.tanque.value);
-
         const campo = el.filtroCampo.value;
         const fv = parseNumber(el.filtroValor.value);
         const hasFilter = Number.isFinite(fv);
@@ -913,17 +994,56 @@
           highlightObj = best;
         }
 
+        // Mobile cards
+        if (mqMobile.matches){
+          if (!rows.length){
+            el.tablaDatos.innerHTML = `<div class="alert info">No hay filas para el filtro actual.</div>`;
+            return;
+          }
+
+          let html = `<div class="list-cards">`;
+          for (const p of rows){
+            const empty = tank.maxH - p.h;
+            const pct = (tank.maxL > 0) ? (p.l / tank.maxL) * 100 : NaN;
+            const isHi = highlightObj ? (p === highlightObj) : false;
+
+            html += `
+              <div class="row-card ${isHi ? "highlight" : ""}">
+                <div class="row-main">
+                  <div class="kv">
+                    <div class="k">Altura</div>
+                    <div class="v">${nf2.format(p.h)} cm</div>
+                  </div>
+                  <div class="kv">
+                    <div class="k">Litros</div>
+                    <div class="v">${nf2.format(p.l)} L</div>
+                  </div>
+                </div>
+                <div class="row-sub">
+                  <span>Vacío: <strong>${nf2.format(empty)} cm</strong></span>
+                  <span>%: <strong>${Number.isFinite(pct) ? nf2.format(pct) : "—"}%</strong></span>
+                </div>
+              </div>
+            `;
+          }
+          html += `</div>`;
+          el.tablaDatos.innerHTML = html;
+          return;
+        }
+
+        // Desktop table
         let html = `
-          <table>
-            <thead>
-              <tr>
-                <th>Altura (cm)</th>
-                <th>Litros (L)</th>
-                <th>Vacío (cm)</th>
-                <th>%</th>
-              </tr>
-            </thead>
-            <tbody>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Altura (cm)</th>
+                  <th>Litros (L)</th>
+                  <th>Vacío (cm)</th>
+                  <th>%</th>
+                </tr>
+              </thead>
+              <tbody>
         `;
 
         for (const p of rows){
@@ -941,7 +1061,7 @@
           `;
         }
 
-        html += `</tbody></table>`;
+        html += `</tbody></table></div>`;
         el.tablaDatos.innerHTML = html;
       }
 
@@ -961,7 +1081,7 @@
         toast("⬇️ Tabla CSV descargada.");
       }
 
-      // ===== Historial =====
+      // ===== Historial (Desktop / Mobile cards) =====
       function loadHistory(){
         try{
           const raw = localStorage.getItem(LS_HIST);
@@ -977,28 +1097,67 @@
         h.unshift(entry);
         saveHistory(h);
       }
+
       function renderHistory(){
         const h = loadHistory();
+
         if (!h.length){
-          el.historial.innerHTML = `<div style="padding:12px;color:var(--muted);">Sin registros</div>`;
+          el.historial.innerHTML = `<div class="alert info">Sin registros</div>`;
           return;
         }
 
+        if (mqMobile.matches){
+          let html = `<div class="list-cards">`;
+          for (const r of h){
+            html += `
+              <div class="row-card">
+                <div class="row-main">
+                  <div class="kv">
+                    <div class="k">Fecha</div>
+                    <div class="v" style="font-size:0.95rem;">${r.fecha}</div>
+                  </div>
+                  <div class="kv">
+                    <div class="k">Tanque</div>
+                    <div class="v">${r.tanque}</div>
+                  </div>
+                </div>
+                <div class="row-sub">
+                  <span><strong>${r.modo}</strong></span>
+                  <span>Entrada: <strong>${r.entrada}</strong></span>
+                </div>
+                <div class="row-sub">
+                  <span>Altura: <strong>${r.altura} cm</strong></span>
+                  <span>Litros: <strong>${r.litros} L</strong></span>
+                </div>
+                <div class="row-sub">
+                  <span>Vacío: <strong>${r.vacio} cm</strong></span>
+                  <span>%: <strong>${r.pct}</strong></span>
+                </div>
+              </div>
+            `;
+          }
+          html += `</div>`;
+          el.historial.innerHTML = html;
+          return;
+        }
+
+        // Desktop table
         let html = `
-          <table>
-            <thead>
-              <tr>
-                <th>Fecha</th>
-                <th>Tanque</th>
-                <th>Modo</th>
-                <th>Entrada</th>
-                <th>Altura</th>
-                <th>Litros</th>
-                <th>Vacío</th>
-                <th>%</th>
-              </tr>
-            </thead>
-            <tbody>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Tanque</th>
+                  <th>Modo</th>
+                  <th>Entrada</th>
+                  <th>Altura</th>
+                  <th>Litros</th>
+                  <th>Vacío</th>
+                  <th>%</th>
+                </tr>
+              </thead>
+              <tbody>
         `;
 
         for (const r of h){
@@ -1016,7 +1175,7 @@
           `;
         }
 
-        html += `</tbody></table>`;
+        html += `</tbody></table></div>`;
         el.historial.innerHTML = html;
       }
 
@@ -1034,10 +1193,8 @@
             `"${r.tanque}",` +
             `"${String(r.modo).replaceAll('"','""')}",` +
             `"${String(r.entrada).replaceAll('"','""')}",` +
-            `"${r.altura}",` +
-            `"${r.litros}",` +
-            `"${r.vacio}",` +
-            `"${r.pct}"`
+            `${r.altura},${r.litros},${r.vacio},` +
+            `"${String(r.pct).replaceAll('"','""')}"`
           );
         }
         const date = new Date().toISOString().slice(0,10);
@@ -1051,7 +1208,6 @@
           toast("No hay historial para copiar.");
           return;
         }
-
         let text = "=== HISTORIAL TANQUES ===\n\n";
         for (const r of h){
           text += `${r.fecha} | ${r.tanque} | ${r.modo} | entrada: ${r.entrada} | altura: ${r.altura} | litros: ${r.litros} | vacío: ${r.vacio} | %: ${r.pct}\n`;
@@ -1079,7 +1235,7 @@
         }
       }
 
-      // ===== Estado (persistencia) =====
+      // ===== Estado =====
       function loadState(){
         try{
           const raw = localStorage.getItem(LS_STATE);
@@ -1178,6 +1334,9 @@
         }
 
         saveState();
+
+        // en móvil: abre el bloque de resultado y baja suavemente
+        el.resultado.scrollIntoView({ behavior: "smooth", block: "start" });
       }
 
       function clearInputs(){
@@ -1189,11 +1348,22 @@
         saveState();
       }
 
+      function applyMobileDefaults(){
+        // En móvil, colapsa tabla/hist para que la pantalla sea “app”
+        if (mqMobile.matches){
+          el.detailsTable.removeAttribute("open");
+          el.detailsHistory.removeAttribute("open");
+        } else {
+          el.detailsTable.setAttribute("open", "");
+          el.detailsHistory.setAttribute("open", "");
+        }
+      }
+
       // ===== Init =====
       function init(){
         el.anio.textContent = new Date().getFullYear();
 
-        // Populate tank select (orden ascendente por capacidad)
+        // Populate tank select
         const keys = Object.keys(DATA).sort((a,b) => parseInt(a) - parseInt(b));
         el.tanque.innerHTML = keys.map(k => `<option value="${k}">${k}</option>`).join("");
 
@@ -1211,6 +1381,7 @@
         updateModeUI();
         renderHistory();
         renderTable(null);
+        applyMobileDefaults();
 
         // Events
         el.tanque.addEventListener("change", () => {
@@ -1230,7 +1401,6 @@
 
         el.allowExtrap.addEventListener("change", () => {
           updateModeUI();
-          // si hay algo en pantalla y autoCalc activo, recalcular preview
           if (el.autoCalc.checked && el.valor.value.trim() !== ""){
             runCalc({saveToHistory:false});
           } else {
@@ -1249,6 +1419,14 @@
           }
         });
 
+        // Enter = calcular y guardar (muy útil en móvil)
+        el.valor.addEventListener("keydown", (e) => {
+          if (e.key === "Enter"){
+            e.preventDefault();
+            runCalc({saveToHistory:true});
+          }
+        });
+
         el.autoCalc.addEventListener("change", () => {
           saveState();
           if (el.autoCalc.checked && el.valor.value.trim() !== ""){
@@ -1256,8 +1434,14 @@
           }
         });
 
+        // Buttons (top)
         el.btnCalcular.addEventListener("click", () => runCalc({saveToHistory:true}));
         el.btnLimpiar.addEventListener("click", clearInputs);
+
+        // Buttons (bottom bar)
+        el.btnCalcularBottom.addEventListener("click", () => runCalc({saveToHistory:true}));
+        el.btnLimpiarBottom.addEventListener("click", clearInputs);
+
         el.btnResetState.addEventListener("click", resetState);
 
         el.filtroCampo.addEventListener("change", () => {
@@ -1287,7 +1471,14 @@
         el.btnHistCsv.addEventListener("click", exportHistoryCSV);
         el.btnHistCopy.addEventListener("click", copyHistory);
 
-        // Si hay valor y autocálculo activo, previsualiza
+        // Re-render si cambia el breakpoint (rotación / tablet)
+        mqMobile.addEventListener("change", () => {
+          applyMobileDefaults();
+          renderTable(currentResult);
+          renderHistory();
+        });
+
+        // Previsualiza si aplica
         if (el.autoCalc.checked && el.valor.value.trim() !== ""){
           runCalc({saveToHistory:false});
         }
