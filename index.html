@@ -123,6 +123,10 @@
       position: relative; z-index: 1;
     }
     .toggle input{width:auto;margin:0}
+    .toggle[aria-disabled="true"]{
+      opacity:.55;
+      cursor:not-allowed;
+    }
 
     .btns{display:flex;gap:12px;flex-wrap:wrap;margin-top:16px}
     button{
@@ -202,7 +206,7 @@
       <div>
         <h1>Medidas de Tanques</h1>
         <p class="subtitle">
-          Calcula por <strong>interpolación lineal</strong> usando la tabla de calibración (o modelo lineal para silos).
+          Calcula por <strong>interpolación lineal</strong> usando tabla (o modelo lineal para silos).
         </p>
       </div>
     </header>
@@ -244,16 +248,18 @@
             <p class="help" id="rango">—</p>
 
             <div class="row" style="margin-top:12px;">
-              <label class="toggle">
+              <label class="toggle" id="extrapToggle">
                 <input type="checkbox" id="allowExtrap" />
                 Extrapolación ±2 cm (estimado)
               </label>
+              <p class="help" id="extrapHelp" style="margin:0">—</p>
             </div>
           </div>
         </div>
 
         <div class="btns">
-          <button class="btn-primary" id="btnCalcular" type="button">Guardar</button>
+          <!-- Cambio UX: el cálculo es automático; este botón guarda -->
+          <button class="btn-primary" id="btnCalcular" type="button">Guardar en historial</button>
           <button class="btn-secondary" id="btnLimpiar" type="button">Limpiar</button>
         </div>
 
@@ -343,9 +349,10 @@
       "use strict";
 
       const MAX_HIST = 20;
-      const LS_STATE = "tankcalc_state_v3";
-      const LS_HIST  = "tankcalc_history_v3";
+      const LS_STATE = "tankcalc_state_v4";   // <-- subí versión por cambios
+      const LS_HIST  = "tankcalc_history_v4"; // <-- subí versión por cambios
       const EXTRAP_TOL_CM = 2;
+      const TABLE_PREVIEW_ROWS = 40;
 
       // =========================
       // DATA (TABLAS + SILOS LINEALES)
@@ -372,6 +379,8 @@
         tankMeta: document.getElementById("tankMeta"),
         modoHelp: document.getElementById("modoHelp"),
         allowExtrap: document.getElementById("allowExtrap"),
+        extrapToggle: document.getElementById("extrapToggle"),
+        extrapHelp: document.getElementById("extrapHelp"),
 
         btnCalcular: document.getElementById("btnCalcular"),
         btnLimpiar: document.getElementById("btnLimpiar"),
@@ -388,6 +397,10 @@
         outLitros: document.getElementById("outLitros"),
         outVacio: document.getElementById("outVacio"),
         outPct: document.getElementById("outPct"),
+        outAlturaSub: document.getElementById("outAlturaSub"),
+        outLitrosSub: document.getElementById("outLitrosSub"),
+        outVacioSub: document.getElementById("outVacioSub"),
+        outPctSub: document.getElementById("outPctSub"),
         toast: document.getElementById("toast"),
 
         tablaDatos: document.getElementById("tablaDatos"),
@@ -477,15 +490,17 @@
         return tank;
       }
 
+      function isLinear(tank){ return tank.meta?.type === "linear"; }
+
       function getHeightRange(tank, allowExtrap){
+        // Para silos lineales NO usamos extrapolación (se desactiva en UI)
         const min = allowExtrap ? Math.max(0, tank.minH - EXTRAP_TOL_CM) : tank.minH;
         const max = allowExtrap ? (tank.maxH + EXTRAP_TOL_CM) : tank.maxH;
         return { min, max };
       }
 
       function getLitersTolFrom2cm(tank){
-        // Para lineal: 2 cm * (L/cm)
-        if (tank.meta?.type === "linear"){
+        if (isLinear(tank)){
           const tol = Math.abs(tank.meta.lPerCm) * EXTRAP_TOL_CM;
           return { low: tol, high: tol };
         }
@@ -512,6 +527,19 @@
         if (!allowExtrap) return { min: tank.minL, max: tank.maxL };
         const tol = getLitersTolFrom2cm(tank);
         return { min: Math.max(0, tank.minL - tol.low), max: tank.maxL + tol.high };
+      }
+
+      // Vacío "calibrado" distinto para tabla vs lineal (más claro)
+      function getEmptyRange(tank, allowExtrap){
+        const minEmpty = allowExtrap ? -EXTRAP_TOL_CM : 0;
+
+        // Para tabla: rango calibrado es (maxH - minH)
+        // Para lineal: rango físico es (maxH - 0)
+        const baseMinH = isLinear(tank) ? 0 : tank.minH;
+        const heightRange = getHeightRange(tank, allowExtrap);
+        const maxEmpty = tank.maxH - Math.max(baseMinH, heightRange.min);
+
+        return { minEmpty, maxEmpty, baseMinH };
       }
 
       function interpWithExtrap(points, x, xKey, yKey, allowExtrap, tol){
@@ -583,13 +611,12 @@
         }
 
         // vacío
-        const minEmpty = allowExtrap ? -EXTRAP_TOL_CM : 0;
-        const heightRange = getHeightRange(tank, allowExtrap);
-        const maxEmpty = tank.maxH - heightRange.min;
-        if (v < minEmpty || v > maxEmpty){
+        const er = getEmptyRange(tank, allowExtrap);
+        if (v < er.minEmpty || v > er.maxEmpty){
+          const calMax = tank.maxH - er.baseMinH;
           return allowExtrap
-            ? `Vacío fuera del rango permitido. Calibrado: 0–${nf2.format(tank.maxH - tank.minH)} cm. Con extrap.: ${nf2.format(minEmpty)}–${nf2.format(maxEmpty)} cm.`
-            : `Vacío fuera de rango. Rango: 0–${nf2.format(tank.maxH - tank.minH)} cm.`;
+            ? `Vacío fuera del rango permitido. Calibrado: 0–${nf2.format(calMax)} cm. Con extrap.: ${nf2.format(er.minEmpty)}–${nf2.format(er.maxEmpty)} cm.`
+            : `Vacío fuera de rango. Rango: 0–${nf2.format(calMax)} cm.`;
         }
         return null;
       }
@@ -631,7 +658,7 @@
       function updateTankMeta(){
         const tank = getTank(el.tanque.value);
 
-        if (tank.meta?.type === "linear"){
+        if (isLinear(tank)){
           el.tankMeta.textContent =
             `Altura máxima: ${nf2.format(tank.meta.maxH)} cm • 1 cm = ${nf2.format(tank.meta.lPerCm)} L • Capacidad: ${nf2.format(tank.meta.maxL)} L`;
           return;
@@ -641,9 +668,27 @@
           `Altura calibrada: ${nf2.format(tank.minH)}–${nf2.format(tank.maxH)} cm • Capacidad (tabla): ${nf2.format(tank.maxL)} L • Filas: ${tank.count}`;
       }
 
+      function updateExtrapUI(){
+        const tank = getTank(el.tanque.value);
+
+        if (isLinear(tank)){
+          // Para evitar resultados raros, se desactiva extrapolación en silos lineales
+          el.allowExtrap.checked = false;
+          el.allowExtrap.disabled = true;
+          el.extrapToggle.setAttribute("aria-disabled","true");
+          el.extrapHelp.textContent = "En silos lineales la extrapolación está desactivada (se usa 0–altura máxima).";
+        } else {
+          el.allowExtrap.disabled = false;
+          el.extrapToggle.removeAttribute("aria-disabled");
+          el.extrapHelp.textContent = "Útil si tu medición queda cerca del rango calibrado.";
+        }
+      }
+
       function updateModeUI(){
         const mode = el.modo.value;
         const tank = getTank(el.tanque.value);
+
+        // Forzamos allowExtrap ya procesado por UI
         const allowExtrap = el.allowExtrap.checked;
 
         el.valor.classList.remove("invalid");
@@ -669,12 +714,13 @@
           el.valorLabel.textContent = "Vacío (cm)";
           el.valor.placeholder = "Ej: 100";
           el.modoHelp.textContent = "Ingresa vacío y obtén litros + altura + %.";
-          const minEmpty = allowExtrap ? -EXTRAP_TOL_CM : 0;
-          const hr = getHeightRange(tank, allowExtrap);
-          const maxEmpty = tank.maxH - hr.min;
+
+          const er = getEmptyRange(tank, allowExtrap);
+          const calMax = tank.maxH - er.baseMinH;
+
           el.rango.textContent = allowExtrap
-            ? `Calibrado: 0–${nf2.format(tank.maxH - tank.minH)} cm • Extrap: ${nf2.format(minEmpty)}–${nf2.format(maxEmpty)} cm.`
-            : `Calibrado: 0–${nf2.format(tank.maxH - tank.minH)} cm.`;
+            ? `Calibrado: 0–${nf2.format(calMax)} cm • Extrap: ${nf2.format(er.minEmpty)}–${nf2.format(er.maxEmpty)} cm.`
+            : `Calibrado: 0–${nf2.format(calMax)} cm.`;
         }
       }
 
@@ -684,6 +730,10 @@
         el.outLitros.textContent = "—";
         el.outVacio.textContent = "—";
         el.outPct.textContent = "—";
+        el.outAlturaSub.textContent = "—";
+        el.outLitrosSub.textContent = "—";
+        el.outVacioSub.textContent = "—";
+        el.outPctSub.textContent = "—";
         el.resSubtitulo.textContent = "—";
         toast("");
       }
@@ -703,13 +753,32 @@
         el.outVacio.textContent  = `${nf2.format(result.empty)} cm`;
         el.outPct.textContent    = `${nf2.format(result.pct)}%`;
 
+        // Sub-info útil (antes estaba vacío)
+        const quality = result.extrapolated ? "estimado" : "calibrado";
+        el.outAlturaSub.textContent = quality;
+
+        if (isLinear(tank)){
+          el.outLitrosSub.textContent = `k=${nf2.format(tank.meta.lPerCm)} L/cm`;
+          el.outVacioSub.textContent  = `máx=${nf2.format(tank.meta.maxH)} cm`;
+          el.outPctSub.textContent    = `cap=${nf2.format(tank.meta.maxL)} L`;
+        } else {
+          el.outLitrosSub.textContent = `tabla (${tank.count} filas)`;
+          el.outVacioSub.textContent  = `hMax=${nf2.format(tank.maxH)} cm`;
+          el.outPctSub.textContent    = `cap=${nf2.format(tank.maxL)} L`;
+        }
+
         toast(isSaved ? "✅ Guardado en historial." : "");
       }
+
+      // =========================
+      // Tabla: preview (evita cargar miles de filas de golpe)
+      // =========================
+      const tableExpandedByKey = new Map();
 
       function renderTable(){
         const tank = getTank(el.tanque.value);
 
-        if (tank.meta?.type === "linear"){
+        if (isLinear(tank)){
           const mh = tank.meta.maxH;
           const k  = tank.meta.lPerCm;
           const cap = tank.meta.maxL;
@@ -724,17 +793,44 @@
           return;
         }
 
+        const expanded = !!tableExpandedByKey.get(tank.key);
+        const total = tank.points.length;
+        const showCount = expanded ? total : Math.min(TABLE_PREVIEW_ROWS, total);
+
         let html = "<div class='alert'><strong>Tabla</strong><br><span style='color:var(--muted)'>Altura (cm) ↔ Litros (L)</span></div>";
+        if (total > TABLE_PREVIEW_ROWS){
+          html += `
+            <div class="btns" style="margin-top:10px">
+              <button class="btn-secondary" type="button" id="btnToggleTable">
+                ${expanded ? "Ver menos" : `Ver todo (${total} filas)`}
+              </button>
+            </div>
+          `;
+        }
+
         html += "<div style='margin-top:12px; overflow:auto; border:1px solid var(--border); border-radius:12px; background:#fff; max-height:420px;'>";
         html += "<table style='width:100%; border-collapse:collapse; min-width:520px'>";
         html += "<thead><tr style='background:var(--primary); color:#fff'><th style='padding:12px'>Altura</th><th style='padding:12px'>Litros</th></tr></thead><tbody>";
 
-        tank.points.forEach(p=>{
+        for (let i=0;i<showCount;i++){
+          const p = tank.points[i];
           html += `<tr><td style="padding:10px; text-align:center; border-bottom:1px solid #eef2f7">${p.h}</td><td style="padding:10px; text-align:center; border-bottom:1px solid #eef2f7">${p.l}</td></tr>`;
-        });
+        }
+
+        if (!expanded && total > showCount){
+          html += `<tr><td colspan="2" style="padding:10px; text-align:center; color:var(--muted)">… (${total - showCount} filas ocultas)</td></tr>`;
+        }
 
         html += "</tbody></table></div>";
         el.tablaDatos.innerHTML = html;
+
+        const btn = document.getElementById("btnToggleTable");
+        if (btn){
+          btn.addEventListener("click", () => {
+            tableExpandedByKey.set(tank.key, !expanded);
+            renderTable();
+          }, { once:true });
+        }
       }
 
       function loadHistory(){
@@ -761,13 +857,16 @@
         }
         let html = "<div style='display:grid; gap:12px; margin-top:6px'>";
         h.forEach(r=>{
+          const meta = r.tipo === "lineal"
+            ? `• lineal k=${r.k ?? "—"}`
+            : "• tabla";
           html += `
             <div style="border:1px solid var(--border); border-radius:14px; padding:12px; background:#fff">
               <div style="display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap">
                 <div><div style="color:var(--muted); font-size:.82rem">Fecha</div><div style="font-weight:950">${r.fecha}</div></div>
                 <div><div style="color:var(--muted); font-size:.82rem">Tanque</div><div style="font-weight:950">${r.tanque}</div></div>
               </div>
-              <div style="margin-top:8px; color:var(--muted)"><strong>${r.modo}</strong> • Entrada: <strong>${r.entrada}</strong></div>
+              <div style="margin-top:8px; color:var(--muted)"><strong>${r.modo}</strong> ${meta} • Entrada: <strong>${r.entrada}</strong></div>
               <div style="margin-top:8px; display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; color:var(--muted)">
                 <span>Altura: <strong>${r.altura} cm</strong></span>
                 <span>Litros: <strong>${r.litros} L</strong></span>
@@ -786,7 +885,8 @@
         if (!h.length){ toast("No hay historial para copiar."); return; }
         let text = "=== HISTORIAL TANQUES ===\n\n";
         for (const r of h){
-          text += `${r.fecha} | ${r.tanque} | ${r.modo} | entrada: ${r.entrada} | altura: ${r.altura} | litros: ${r.litros} | vacío: ${r.vacio} | %: ${r.pct}\n`;
+          const meta = r.tipo === "lineal" ? ` | tipo: lineal | k: ${r.k}` : " | tipo: tabla";
+          text += `${r.fecha} | ${r.tanque} | ${r.modo}${meta} | entrada: ${r.entrada} | altura: ${r.altura} | litros: ${r.litros} | vacío: ${r.vacio} | %: ${r.pct}\n`;
         }
         try{
           if (navigator.clipboard?.writeText){
@@ -807,9 +907,11 @@
       function exportHistoryCSV(){
         const h = loadHistory();
         if (!h.length){ toast("No hay historial para exportar."); return; }
-        const lines = ["fecha,tanque,modo,entrada,altura_cm,litros,vacio_cm,porcentaje"];
+        // Nuevo: tipo y k
+        const lines = ["fecha,tanque,tipo,k,modo,entrada,altura_cm,litros,vacio_cm,porcentaje"];
         for (const r of h){
-          lines.push(`"${r.fecha}","${r.tanque}","${r.modo}","${r.entrada}",${r.altura},${r.litros},${r.vacio},"${r.pct}"`);
+          const k = (r.k ?? "");
+          lines.push(`"${r.fecha}","${r.tanque}","${r.tipo}","${k}","${r.modo}","${r.entrada}",${r.altura},${r.litros},${r.vacio},"${r.pct}"`);
         }
         const date = new Date().toISOString().slice(0,10);
         downloadFile(`historial_tanques_${date}.csv`, "text/csv;charset=utf-8", lines.join("\n"));
@@ -840,6 +942,7 @@
         el.allowExtrap.checked = false;
         hideResult();
         clearError(); clearWarning();
+        updateExtrapUI();
         renderTable();
         updateModeUI();
         saveState();
@@ -906,9 +1009,13 @@
         showResult(result, mode, v, saveToHistory);
 
         if (saveToHistory){
+          const tipo = isLinear(tank) ? "lineal" : "tabla";
           addHistoryEntry({
             fecha: nowStampCO(),
             tanque: tank.key,
+            tipo,
+            k: isLinear(tank) ? nf2.format(tank.meta.lPerCm) : "",
+
             modo: modeText(mode) + (result.extrapolated ? " (estimado)" : ""),
             entrada: `${nf2.format(v)} ${mode === "litros" ? "L" : "cm"}`,
             altura: `${nf2.format(result.h)}`,
@@ -966,6 +1073,7 @@
         if (typeof s?.allowExtrap === "boolean") el.allowExtrap.checked = s.allowExtrap;
 
         updateTankMeta();
+        updateExtrapUI();
         updateModeUI();
         renderTable();
         renderHistory();
@@ -977,6 +1085,7 @@
 
         el.tanque.addEventListener("change", () => {
           updateTankMeta();
+          updateExtrapUI();
           updateModeUI();
           renderTable();
           hideResult();
@@ -997,7 +1106,7 @@
           saveState();
         });
 
-        //  Cálculo automático siempre
+        // Cálculo automático siempre
         el.valor.addEventListener("input", () => {
           saveState();
           if (el.valor.value.trim() === ""){
@@ -1014,6 +1123,7 @@
           if (e.key === "Enter"){ e.preventDefault(); runCalc(true); }
         });
 
+        // Botón principal: guardar en historial
         el.btnCalcular.addEventListener("click", () => runCalc(true));
         el.btnLimpiar.addEventListener("click", clearInputs);
         el.btnLimpiarBottom.addEventListener("click", clearInputs);
